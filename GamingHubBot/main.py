@@ -1,4 +1,5 @@
 import discord
+from discord.utils import get
 
 client = discord.Client()
 
@@ -11,25 +12,32 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author.bot:
         return
-
     if message.content.startswith('$hello'):
         await message.channel.send('Hello!')
     if message.content.startswith('Diz olá ao Kebab'):
         await message.channel.send('Olá Kebab!')
+
+    if message.content.startswith('$muteall') and message.author.voice and message.author.voice.channel:
+        channel = message.author.voice.channel
+        for member in channel.members:
+            await member.edit(mute=True)
+    if message.content.startswith('$unmuteall') and message.author.voice and message.author.voice.channel:
+        channel = message.author.voice.channel
+        for member in channel.members:
+            await member.edit(mute=False)
 
 
 # ADD REACTION ROLE
 @client.event
 async def on_raw_reaction_add(payload):
     guild_id = 312101041380524032
-    channel_id = 643980318860378122
     message_id = 661371005993746512
-    await add_reaction_roles(payload, guild_id, channel_id, message_id)
+    await add_reaction_roles(payload, guild_id, message_id)
 
 
-async def add_reaction_roles(payload, guild_id, channel_id, message_id):
+async def add_reaction_roles(payload, guild_id, message_id):
     await client.wait_until_ready()
 
     if payload.message_id == message_id:
@@ -83,19 +91,20 @@ async def check_emoji_addition(payload, guild, role_id, emoji_unicode):
 # REMOVE REACTION ROLE
 @client.event
 async def on_raw_reaction_remove(payload):
-    guild_id = 312101041380524032
-    channel_id = 643980318860378122
     message_id = 661371005993746512
-    await remove_reaction_roles(payload, guild_id, channel_id, message_id)
+    await remove_reaction_roles(payload, message_id)
 
 
-async def remove_reaction_roles(payload, guild_id, channel_id, message_id):
-    # print('Reaction removal to message with ID ', payload.message_id, ' and emoji ', payload.emoji.name, ' detected!')
+async def remove_reaction_roles(payload, message_id):
+    print('Reaction removal to message with ID ', payload.message_id, ' and emoji ', payload.emoji.name, ' detected!')
     await client.wait_until_ready()
 
     if payload.message_id == message_id:
-        guild = client.get_guild(guild_id)
-        member = guild.get_member(payload.user_id)
+        guild = await client.fetch_guild(payload.guild_id)
+        member = await guild.fetch_member(payload.user_id)
+        # Payload.user id returns the user's ID as an int.
+        print("User ID: " + str(payload.user_id))
+        #member = guild.get_member(payload.user_id)
 
         # Role ---- S.W.A.T.
         swat_role_id = 690929095894237254
